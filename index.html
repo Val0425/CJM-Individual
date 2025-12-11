@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plantilla de Experiencia de Usuario Interactiva</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <nav class="table-controls">
+        <div class="controls-left">
+            <button id="newTableBtn" class="btn-primary">➕ Nueva Tabla</button>
+            <button id="saveTableBtn" class="btn-secondary">💾 Guardar</button>
+            <button id="viewTablesBtn" class="btn-secondary">📋 Ver Tablas</button>
+        </div>
+        <div class="controls-center">
+            <h2 id="currentTableName" class="editable-title" title="Haz clic para editar">Tabla Sin Nombre</h2>
+        </div>
+        <div class="controls-right">
+            <button id="exportPdfBtn" class="btn-export">📄 Exportar PDF</button>
+        </div>
+    </nav>
+
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h3>Nombre de la Tabla</h3>
+            <input type="text" id="tableNameInput" placeholder="Ingrese el nombre de la tabla">
+            <div class="modal-buttons">
+                <button id="saveNameBtn" class="btn-primary">Guardar</button>
+                <button id="cancelNameBtn" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tablesModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Tablas Guardadas</h3>
+                <button id="closeTablesModal" class="close-btn">✕</button>
+            </div>
+            <div id="tablesList" class="tables-list"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header-label"></div>
+        <div class="header-title before">ANTES</div>
+        <div class="header-title during">DURANTE</div>
+        <div class="header-title after">DESPUÉS</div>
+
+        <div class="row-label">Etapas</div>
+        <div class="cell editable" colspan="4">Afiliación de empresa</div>
+        <div class="cell editable" colspan="4">Relacionamiento</div>
+        <div class="cell editable" colspan="4">Pago de aportes</div>
+
+        <div class="row-label">Puntos de contacto</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+
+        <div class="row-label child-label">Actividades del cliente</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+
+        <div class="row-label child-label">Expectativas</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+
+        <div class="row-label child-label">Nivel de Experiencia</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+
+        <div class="row-label sub-label grandchild-label">WOW</div>
+        <div class="cell interactive-cell experience-cell" data-col="1" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="2" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="3" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="4" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="5" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="6" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="7" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="8" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="9" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="10" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="11" data-emoji="😍"></div>
+        <div class="cell interactive-cell experience-cell" data-col="12" data-emoji="😍"></div>
+
+        <div class="row-label sub-label grandchild-label">Bueno</div>
+        <div class="cell interactive-cell experience-cell" data-col="1" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="2" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="3" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="4" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="5" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="6" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="7" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="8" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="9" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="10" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="11" data-emoji="☺️"></div>
+        <div class="cell interactive-cell experience-cell" data-col="12" data-emoji="☺️"></div>
+
+        <div class="row-label sub-label grandchild-label">Funcional</div>
+        <div class="cell interactive-cell experience-cell" data-col="1" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="2" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="3" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="4" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="5" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="6" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="7" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="8" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="9" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="10" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="11" data-emoji="🙂"></div>
+        <div class="cell interactive-cell experience-cell" data-col="12" data-emoji="🙂"></div>
+
+        <div class="row-label sub-label grandchild-label">Básico</div>
+        <div class="cell interactive-cell experience-cell" data-col="1" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="2" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="3" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="4" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="5" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="6" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="7" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="8" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="9" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="10" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="11" data-emoji="😕"></div>
+        <div class="cell interactive-cell experience-cell" data-col="12" data-emoji="😕"></div>
+
+        <div class="row-label sub-label grandchild-label">Malo</div>
+        <div class="cell interactive-cell experience-cell" data-col="1" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="2" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="3" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="4" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="5" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="6" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="7" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="8" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="9" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="10" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="11" data-emoji="😐"></div>
+        <div class="cell interactive-cell experience-cell" data-col="12" data-emoji="😐"></div>
+
+        <div class="row-label sub-label grandchild-label">Lo odio</div>
+        <div class="cell interactive-cell experience-cell" data-col="1" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="2" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="3" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="4" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="5" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="6" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="7" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="8" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="9" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="10" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="11" data-emoji="😡"></div>
+        <div class="cell interactive-cell experience-cell" data-col="12" data-emoji="😡"></div>
+
+        <div class="row-label child-label">Momentos de dolor</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+
+        <div class="row-label child-label">Momentos de verdad</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+
+        <div class="row-label child-label">Nivel de esfuerzo</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+
+        <div class="row-label sub-label grandchild-label">Alto</div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="row-label sub-label grandchild-label">Medio</div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="row-label sub-label grandchild-label">Bajo</div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+
+        <div class="row-label child-label">Emociones</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+
+        <div class="row-label sub-label grandchild-label">📞 Línea telefónica CAS</div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="row-label sub-label grandchild-label">🖥️ Portal Web</div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="row-label sub-label grandchild-label">✉️ Correo Aportes</div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="row-label sub-label grandchild-label">📞 Línea telefónica CRECE</div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="row-label sub-label grandchild-label">✉️ Correo CRECE</div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="cell interactive-cell mark-cell" colspan="1"></div>
+        <div class="row-label child-label">Verbatims</div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+        <div class="cell editable" colspan="1"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
