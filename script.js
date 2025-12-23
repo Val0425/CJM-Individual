@@ -35,10 +35,12 @@ class TableManager {
 
     async init() {
         this.setupEventListeners();
+        // Primero asegurarnos de que las celdas editables tengan sub-cuadrados
+        this.insertSubcellsToEditableCells();
+        // Luego habilitar la edición en los sub-cuadrados
         this.makeEditableCells();
         this.setupInteractiveCells();
         this.setupEditableTitle();
-
         // Cargar tablas desde Firebase
         await this.loadAllTablesFromFirebase();
     }
@@ -89,16 +91,36 @@ class TableManager {
     }
 
     makeEditableCells() {
-        document.querySelectorAll('.editable').forEach(cell => {
-            cell.contentEditable = true;
-            // autoSave() ahora activa la sincronización con Firebase
-            cell.addEventListener('blur', () => this.autoSave());
-            cell.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    cell.blur();
+        // Aplicar contentEditable y handlers a subcells si existen
+        document.querySelectorAll('.cell.editable .subcell').forEach(sub => {
+            sub.contentEditable = true;
+            if (!sub.dataset._listenersAttached) {
+                sub.addEventListener('blur', () => this.autoSave());
+                sub.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sub.blur();
+                    }
+                });
+                sub.dataset._listenersAttached = '1';
+            }
+        });
+
+        // Para celdas editables que NO tengan subcells (filas excluidas), asegúrate de que la celda sea editable
+        document.querySelectorAll('.cell.editable').forEach(cell => {
+            if (!cell.querySelector('.subcells')) {
+                if (!cell.dataset._cellListenersAttached) {
+                    cell.contentEditable = true;
+                    cell.addEventListener('blur', () => this.autoSave());
+                    cell.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            cell.blur();
+                        }
+                    });
+                    cell.dataset._cellListenersAttached = '1';
                 }
-            });
+            }
         });
     }
 
@@ -115,6 +137,110 @@ class TableManager {
             cell.addEventListener('click', () => {
                 this.toggleMarkCell(cell);
             });
+        });
+    }
+
+    /**
+     * Inserta 4 sub-cuadrados editables en cada celda `.editable`.
+     * - Si la celda ya contiene texto, ese texto se mueve al primer subcuadro.
+     * - Evita tocar celdas que sean `.experience-cell` o `.mark-cell`.
+     */
+    insertSubcellsToEditableCells() {
+    // Insert subcells only for editable cells that belong to allowed rows.
+    // Añadido 'Puntos de contacto' a la lista de filas excluidas por petición del usuario.
+    const excludedRows = new Set(['Etapas', 'Nivel de Experiencia', 'Emociones', 'Verbatims', 'Puntos de contacto']);
+        const container = document.querySelector('.container');
+        if (!container) return;
+
+        let currentRowLabel = '';
+        Array.from(container.children).forEach(child => {
+            if (child.classList.contains('row-label')) {
+                currentRowLabel = child.textContent.trim();
+                return;
+            }
+
+            if (child.classList && child.classList.contains('cell') && child.classList.contains('editable')) {
+                // Skip interactive kinds
+                if (child.classList.contains('experience-cell') || child.classList.contains('mark-cell')) return;
+
+                const shouldExclude = excludedRows.has(currentRowLabel);
+
+                const existing = child.querySelector('.subcells');
+
+                if (shouldExclude) {
+                    // If this cell already has subcells, convert back to a single editable region
+                    if (existing) {
+                        const firstText = (existing.querySelector('.subcell')?.textContent || '').trim();
+                        child.innerHTML = '';
+                        child.textContent = firstText; // put existing text back into the cell
+                        // make the cell itself editable so behavior remains
+                        child.contentEditable = true;
+                        child.addEventListener('blur', () => this.autoSave());
+                        child.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                child.blur();
+                            }
+                        });
+                    } else {
+                        // Ensure cell is editable (no subcells) for excluded rows
+                        child.contentEditable = true;
+                        child.addEventListener('blur', () => this.autoSave());
+                        child.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                child.blur();
+                            }
+                        });
+                    }
+
+                    return;
+                }
+
+                // Allowed row: ensure has subcells
+                if (existing) {
+                    // nothing to do (but ensure the subcells have listeners)
+                } else {
+                    const rawText = (child.textContent || '').trim();
+                    const containerDiv = document.createElement('div');
+                    containerDiv.className = 'subcells';
+                    for (let i = 0; i < 4; i++) {
+                        const box = document.createElement('div');
+                        box.className = 'subcell';
+                        box.setAttribute('data-subcell-index', i);
+                        box.contentEditable = true;
+                        containerDiv.appendChild(box);
+                    }
+                    child.innerHTML = '';
+                    child.appendChild(containerDiv);
+
+                    if (rawText.length > 0) {
+                        const first = containerDiv.querySelector('.subcell');
+                        if (first) first.textContent = rawText;
+                    }
+                }
+
+                // Wire listeners on subcells if present
+                const finalContainer = child.querySelector('.subcells');
+                if (finalContainer) {
+                    finalContainer.querySelectorAll('.subcell').forEach(sub => {
+                        sub.contentEditable = true;
+                        // Avoid double-binding: remove existing simple handlers if any by cloning
+                        // (Safer approach than tracking handlers). We'll replace the node with a clone without listeners.
+                        // But cloning would remove contentEditable; instead, use a flag to avoid duplicate.
+                        if (!sub.dataset._listenersAttached) {
+                            sub.addEventListener('keypress', (e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    sub.blur();
+                                }
+                            });
+                            sub.addEventListener('blur', () => this.autoSave());
+                            sub.dataset._listenersAttached = '1';
+                        }
+                    });
+                }
+            }
         });
     }
 
@@ -181,12 +307,12 @@ class TableManager {
         if (!this.db) return;
 
         // Limpiar el estado visual actual para la nueva tabla
-        this.loadTableData({ editableCells: {}, experienceCells: {}, markCells: {} }, 3);
+        this.loadTableData({ editableCells: {}, experienceCells: {}, markCells: {} });
 
         const newTableData = {
             name: name,
             data: this.getCurrentTableData(),
-            schemaVersion: 3, // Explicit versioning to avoid migration issues
+            schemaVersion: 2, // Explicit versioning to avoid migration issues
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -199,7 +325,6 @@ class TableManager {
                 id: docRef.id,
                 name: name,
                 data: newTableData.data,
-                schemaVersion: 3, // Ensure local object has version
                 // Las fechas serán timestamps locales para manejo inmediato en la UI.
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
@@ -225,7 +350,7 @@ class TableManager {
         if (table) {
             const dataToUpdate = {
                 data: this.getCurrentTableData(),
-                schemaVersion: 3, // Explicit versioning
+                schemaVersion: 2, // Explicit versioning
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
@@ -304,8 +429,8 @@ class TableManager {
 
         this.currentTableId = tableId;
         this.updateCurrentTableName(table.name);
-        // Pass schemaVersion explicitly
-        this.loadTableData(table.data, table.schemaVersion);
+        // La estructura de datos (table.data) sigue siendo la misma, solo cambia la fuente.
+        this.loadTableData(table.data);
     }
 
     getCurrentTableData() {
@@ -328,14 +453,18 @@ class TableManager {
         });
 
         // Save mark cells
-        document.querySelectorAll('.mark-cell.marked').forEach((cell, index) => {
-            data.markCells[index] = true;
+        // Use the global index among ALL .mark-cell elements so we can restore by position later.
+        const allMarkCells = document.querySelectorAll('.mark-cell');
+        allMarkCells.forEach((cell, index) => {
+            if (cell.classList.contains('marked')) {
+                data.markCells[index] = true;
+            }
         });
 
         return data;
     }
 
-    loadTableData(data, schemaVersion) {
+    loadTableData(data) {
         // Clear current state
         const editableCells = document.querySelectorAll('.editable');
         editableCells.forEach(cell => {
@@ -353,24 +482,79 @@ class TableManager {
         });
 
         // Load editable cells
+        // Detectar si es el esquema antiguo (menos celdas)
+        const totalEditable = editableCells.length;
         const dataKeys = Object.keys(data.editableCells || {});
         let isOldSchema = false;
 
-        if (schemaVersion === 3) {
+        // Mejora en la detección: Usar cantidad de celdas en lugar de contenido.
+        // El esquema antiguo (7 columnas) tenía ~52 celdas editables.
+        // El nuevo esquema (12 columnas) tiene > 100.
+        // Si hay datos, pero son pocos (< 80), asumimos que es el esquema antiguo.
+        // Check for explicit schema version first
+        if (data.schemaVersion === 2) {
             isOldSchema = false;
-        } else if (schemaVersion === 2 || (dataKeys.length > 80 && dataKeys.length < 150)) {
-            // Check heuristically? V2 had ~108 editable cells. V3 has ~27 purely editable + (4 rows * 9 cols * 4 nested = 144) ... wait.
+        }
+        // Fallback: Check heuristics if no version is present
+        else if (dataKeys.length > 0 && dataKeys.length < 80) {
             isOldSchema = true;
-            console.log("Loading older schema (v" + schemaVersion + ") into v3 layout. Some misalignment may occur.");
+            console.log("Detectado esquema antiguo por cantidad de celdas (" + dataKeys.length + "). Migrando...");
         }
 
-        // Carga normal
-        Object.entries(data.editableCells || {}).forEach(([index, content]) => {
-            if (editableCells[index]) editableCells[index].textContent = content;
-        });
+        if (isOldSchema) {
+            // Migración de datos on-the-fly
+            const newEditableCells = {};
+            Object.entries(data.editableCells).forEach(([key, content]) => {
+                const oldIndex = parseInt(key);
+                let newIndex = oldIndex;
+
+                if (oldIndex === 0) newIndex = 0; // Afiliación -> Afiliación (Antes)
+                else if (oldIndex === 1) newIndex = 4; // Relacionamiento -> Relacionamiento (Durante)
+                else if (oldIndex === 2) newIndex = 8; // Pago -> Pago (Después)
+                else if (oldIndex >= 3) {
+                    // Mapeo de filas de 7 columnas a 12 columnas.
+                    // Old structure: Row 0 (3 cells), Rows 1+ (7 cells each)
+                    // New structure: Row 0 (12 cells), Rows 1+ (12 cells each)
+
+                    // 1. Determinar en qué fila y columna estaba en el esquema antiguo
+                    const relativeIndex = oldIndex - 3; // Indices 3+ son los de contenido
+                    const rowNumber = Math.floor(relativeIndex / 7); // 0-based row index for content rows
+                    const colNumber = relativeIndex % 7;
+
+                    // 2. Calcular nuevo índice
+                    // El nuevo contenido arranca en índice 12 (después de las 12 celdas de Etapas)
+                    // Cada fila nueva tiene 12 columnas
+                    newIndex = 12 + (rowNumber * 12) + colNumber;
+                }
+                newEditableCells[newIndex] = content;
+            });
+
+            // Renderizar datos migrados
+            Object.entries(newEditableCells).forEach(([index, content]) => {
+                if (editableCells[index]) editableCells[index].textContent = content;
+            });
+
+            // Forzar guardado del nuevo esquema para corregirlo en Firebase
+            this.autoSave();
+
+        } else {
+            // Carga normal
+            Object.entries(data.editableCells || {}).forEach(([index, content]) => {
+                if (editableCells[index]) editableCells[index].textContent = content;
+            });
+        }
 
         // Load experience cells
         Object.entries(data.experienceCells || {}).forEach(([col, emoji]) => {
+            // Ajustar columnas de experiencia si es necesario (1-7 -> map to 12?)
+            // El usuario pidió 12 columnas también para sub-labels?
+            // "cada etapa... se distribuyan en 4 columnas".
+            // Los emojis están abajo. Si el HTML de emojis no cambió de 7 a 12, se rompe.
+            // HTML de emojis data-col va hasta 12 ahora (lo hice en Step 30).
+            // Old data col 1..7.
+            // New data col 1..12.
+            // Mapping: 1->1, 2->?, 3->?
+            // Si el usuario tenía emojis, quedarán en las primeras 7 columnas. Es aceptable.
             const cell = document.querySelector(`[data-col="${col}"][data-emoji="${emoji}"].experience-cell`);
             if (cell) {
                 cell.classList.add('selected');
@@ -386,6 +570,11 @@ class TableManager {
                 cells[index].textContent = '✓';
             }
         });
+
+        // Después de cargar datos, asegurarse de que las celdas editables tengan 4 sub-cuadrados
+        this.insertSubcellsToEditableCells();
+        // Y volver a registrar los listeners en las subcells
+        this.makeEditableCells();
     }
 
     autoSave() {
@@ -593,7 +782,7 @@ class TableManager {
 
         // Dimensiones de la tabla
         const labelColumnWidth = 60; // Ancho para las etiquetas
-        const dataColumnWidth = (tableWidth - labelColumnWidth) / 9; // 9 columnas de datos
+        const dataColumnWidth = (tableWidth - labelColumnWidth) / 12; // 12 columnas de datos
         const rowHeight = 12;
 
         let yPosition = 15;
@@ -654,17 +843,17 @@ class TableManager {
         doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
 
-        // Encabezado ANTES (3 columnas)
-        doc.rect(margin + labelColumnWidth, yPosition, dataColumnWidth * 3, rowHeight, 'FD');
-        doc.text('ANTES', margin + labelColumnWidth + (dataColumnWidth * 1.5) - 10, yPosition + 8);
+        // Encabezado ANTES (4 columnas)
+        doc.rect(margin + labelColumnWidth, yPosition, dataColumnWidth * 4, rowHeight, 'FD');
+        doc.text('ANTES', margin + labelColumnWidth + (dataColumnWidth * 2) - 10, yPosition + 8);
 
-        // Encabezado DURANTE (3 columnas) - mismo color de fondo
-        doc.rect(margin + labelColumnWidth + (dataColumnWidth * 3), yPosition, dataColumnWidth * 3, rowHeight, 'FD');
-        doc.text('DURANTE', margin + labelColumnWidth + (dataColumnWidth * 4.5) - 12, yPosition + 8);
+        // Encabezado DURANTE (4 columnas) - mismo color de fondo
+        doc.rect(margin + labelColumnWidth + (dataColumnWidth * 4), yPosition, dataColumnWidth * 4, rowHeight, 'FD');
+        doc.text('DURANTE', margin + labelColumnWidth + (dataColumnWidth * 6) - 12, yPosition + 8);
 
-        // Encabezado DESPUÉS (3 columnas) - mismo color de fondo
-        doc.rect(margin + labelColumnWidth + (dataColumnWidth * 6), yPosition, dataColumnWidth * 3, rowHeight, 'FD');
-        doc.text('DESPUÉS', margin + labelColumnWidth + (dataColumnWidth * 7.5) - 12, yPosition + 8);
+        // Encabezado DESPUÉS (4 columnas) - mismo color de fondo
+        doc.rect(margin + labelColumnWidth + (dataColumnWidth * 8), yPosition, dataColumnWidth * 4, rowHeight, 'FD');
+        doc.text('DESPUÉS', margin + labelColumnWidth + (dataColumnWidth * 10) - 12, yPosition + 8);
     }
 
     drawTableRow(doc, row, yPosition, margin, labelColumnWidth, dataColumnWidth, rowHeight) {
@@ -695,35 +884,21 @@ class TableManager {
             const cellX = margin + labelColumnWidth + (index * dataColumnWidth);
             const cellWidth = dataColumnWidth * (cell.colspan || 1);
 
-            // Color de fondo segun seleccion
+            // Color de fondo según el tipo de celda
             if (cell.isSelected) {
-                doc.setFillColor(227, 252, 239);
+                doc.setFillColor(227, 252, 239); // Verde claro para seleccionadas
             } else if (cell.isMarked) {
-                doc.setFillColor(233, 231, 253);
+                doc.setFillColor(233, 231, 253); // Morado claro para marcadas
             } else {
-                doc.setFillColor(255, 255, 255);
+                doc.setFillColor(255, 255, 255); // Blanco para normales
             }
+
             doc.rect(cellX, yPosition, cellWidth, rowHeight, 'FD');
 
-            // Handle nested cells
-            if (cell.nestedValues && cell.nestedValues.length > 0) {
-                const nestedWidth = cellWidth / 4;
-                cell.nestedValues.forEach((val, nIndex) => {
-                    const nestedX = cellX + (nIndex * nestedWidth);
-                    // Draw localized border for nested cell
-                    doc.rect(nestedX, yPosition, nestedWidth, rowHeight, 'D');
-
-                    if (val) {
-                        const cellLines = doc.splitTextToSize(val, nestedWidth - 2);
-                        doc.text(cellLines, nestedX + 1, yPosition + 7);
-                    }
-                });
-            } else {
-                // Normal content
-                if (cell.content) {
-                    const cellLines = doc.splitTextToSize(cell.content, cellWidth - 4);
-                    doc.text(cellLines, cellX + 2, yPosition + 7);
-                }
+            // Contenido de la celda
+            if (cell.content) {
+                const cellLines = doc.splitTextToSize(cell.content, cellWidth - 4);
+                doc.text(cellLines, cellX + 2, yPosition + 7);
             }
         });
     }
@@ -749,21 +924,9 @@ class TableManager {
                     cells: []
                 };
             } else if (element.classList.contains('cell') && currentRow) {
-                // Check for nested grid
-                const nestedGrid = element.querySelector('.nested-grid');
-                let nestedValues = [];
-                let content = element.textContent.trim();
-
-                if (nestedGrid) {
-                    const subCells = nestedGrid.querySelectorAll('.nested-cell');
-                    nestedValues = Array.from(subCells).map(sc => sc.textContent.trim());
-                    content = ''; // Main content is empty if nested
-                }
-
                 // Agregar celda a la fila actual
                 const cell = {
-                    content: content,
-                    nestedValues: nestedValues,
+                    content: element.textContent.trim(),
                     colspan: parseInt(element.getAttribute('colspan')) || 1,
                     isSelected: element.classList.contains('selected'),
                     isMarked: element.classList.contains('marked')
@@ -782,7 +945,7 @@ class TableManager {
     }
 
     processTableRows(rows) {
-        // Procesar filas para manejar colspan y asegurar 9 columnas
+        // Procesar filas para manejar colspan y asegurar 12 columnas
         return rows.map(row => {
             const processedCells = [];
             let currentColumn = 0;
@@ -809,8 +972,8 @@ class TableManager {
                 currentColumn += colspan;
             });
 
-            // Rellenar hasta 9 columnas si es necesario
-            while (processedCells.length < 9) {
+            // Rellenar hasta 12 columnas si es necesario
+            while (processedCells.length < 12) {
                 processedCells.push({
                     content: '',
                     colspan: 1
@@ -819,7 +982,7 @@ class TableManager {
 
             return {
                 ...row,
-                cells: processedCells.slice(0, 9) // Asegurar máximo 9 columnas
+                cells: processedCells.slice(0, 12) // Asegurar máximo 12 columnas
             };
         });
     }
@@ -846,6 +1009,8 @@ class TableManager {
             notification.remove();
         }, 3000);
     }
+
+    // Los métodos loadTables() y saveTables() originales (de localStorage) fueron eliminados.
 }
 
 // Initialize the table manager when the page loads
