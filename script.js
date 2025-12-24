@@ -221,12 +221,30 @@ class TableManager {
           const rawText = (child.textContent || "").trim();
           const containerDiv = document.createElement("div");
           containerDiv.className = "subcells";
+
           for (let i = 0; i < 4; i++) {
+            // Crear wrapper para cada subcuadro con su botón
+            const wrapper = document.createElement("div");
+            wrapper.className = "subcell-wrapper";
+
+            // Botón de toggle individual
+            const toggleBtn = document.createElement("button");
+            toggleBtn.className = "subcell-toggle";
+            toggleBtn.innerHTML = "▼";
+            toggleBtn.setAttribute("type", "button");
+            toggleBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              this.toggleIndividualSubcell(wrapper);
+            });
+
             const box = document.createElement("div");
             box.className = "subcell";
             box.setAttribute("data-subcell-index", i);
             box.contentEditable = true;
-            containerDiv.appendChild(box);
+
+            wrapper.appendChild(toggleBtn);
+            wrapper.appendChild(box);
+            containerDiv.appendChild(wrapper);
           }
           child.innerHTML = "";
           child.appendChild(containerDiv);
@@ -285,6 +303,54 @@ class TableManager {
     cell.classList.toggle("marked");
     cell.textContent = cell.classList.contains("marked") ? "✓" : "";
     this.autoSave();
+  }
+
+  /**
+   * Colapsa o expande un subcuadro individual
+   */
+  toggleIndividualSubcell(wrapper) {
+    const subcell = wrapper.querySelector(".subcell");
+    const toggleBtn = wrapper.querySelector(".subcell-toggle");
+
+    if (!subcell || !toggleBtn) return;
+
+    const isCollapsed = wrapper.classList.contains("collapsed");
+
+    if (isCollapsed) {
+      // Expandir
+      wrapper.classList.remove("collapsed");
+      toggleBtn.innerHTML = "▼";
+    } else {
+      // Colapsar
+      wrapper.classList.add("collapsed");
+      toggleBtn.innerHTML = "▶";
+    }
+
+    // Ajustar la celda padre según el estado de todos los subcuadros
+    this.adjustParentCell(wrapper);
+  }
+
+  /**
+   * Ajusta la celda padre según el estado de todos los subcuadros
+   */
+  adjustParentCell(wrapper) {
+    const parentCell = wrapper.closest(".cell.editable");
+    if (!parentCell) return;
+
+    const allWrappers = parentCell.querySelectorAll(".subcell-wrapper");
+    const collapsedWrappers = parentCell.querySelectorAll(
+      ".subcell-wrapper.collapsed"
+    );
+
+    // Si todos los subcuadros están colapsados, colapsar la celda padre
+    if (
+      allWrappers.length > 0 &&
+      allWrappers.length === collapsedWrappers.length
+    ) {
+      parentCell.classList.add("all-collapsed");
+    } else {
+      parentCell.classList.remove("all-collapsed");
+    }
   }
 
   // =========================================================================

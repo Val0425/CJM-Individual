@@ -122,11 +122,22 @@ body {
 .editable {
   cursor: text;
   background-color: #ffffff;
+  transition: all 0.3s ease;
 }
 
 .editable:focus {
-  background-color: #ffffff;
+  background-color: #f4f5f7;
   outline: 2px solid #4c9aff;
+}
+
+/* Cuando todos los subcuadros están colapsados, reducir el tamaño de la celda */
+.cell.editable.all-collapsed {
+  min-height: 50px !important;
+  padding: 4px;
+}
+
+.cell.editable.all-collapsed .subcells {
+  gap: 4px;
 }
 
 /* Celdas interactivas (base) */
@@ -436,4 +447,66 @@ body {
 .subcell:focus {
   outline: 2px solid #4c9aff;
   background: #f7fbff;
+}
+
+/* Wrapper para cada subcuadro individual */
+.subcell-wrapper {
+  position: relative;
+  transition: all 0.3s ease;
+  min-height: 96px; /* Altura normal */
+}
+
+/* Botón para colapsar/expandir subcuadro individual */
+.subcell-toggle {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #e9ecef;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.subcell-toggle:hover {
+  background: #dee2e6;
+  border-color: #adb5bd;
+  opacity: 1;
+}
+
+/* Estado colapsado del subcuadro individual */
+.subcell-wrapper.collapsed {
+  min-height: 40px !important; /* Altura colapsada mucho menor */
+  max-height: 40px;
+  overflow: hidden;
+}
+
+.subcell-wrapper.collapsed .subcell {
+  display: none;
+}
+
+/* Indicador visual cuando está colapsado */
+.subcell-wrapper.collapsed .subcell-toggle {
+  position: static;
+  width: 100%;
+  height: 36px;
+  opacity: 1;
+  background: #f8f9fa;
+  border: 1px dashed #ced4da;
+  border-radius: 6px;
+}
+
+.subcell-wrapper.collapsed .subcell-toggle::after {
+  content: " Expandir";
+  font-size: 11px;
+  margin-left: 4px;
+  color: #6c757d;
 }
